@@ -36,7 +36,7 @@ async function loadBookings() {
   `).join("");
 }
 
-document.getElementById("bookingForm").addEventListener("submit", async event => {
+async function handleBookingSubmit(event) {
   event.preventDefault();
 
   const payload = {
@@ -52,6 +52,7 @@ document.getElementById("bookingForm").addEventListener("submit", async event =>
   });
 
   const data = await response.json();
+
   document.getElementById("message").textContent =
     response.ok ? `Booking #${data.id} created successfully.` : data.error;
 
@@ -60,7 +61,22 @@ document.getElementById("bookingForm").addEventListener("submit", async event =>
     await loadStations();
     await loadBookings();
   }
-});
+}
 
-void loadStations();
-void loadBookings();
+if (typeof document !== "undefined") {
+  document.getElementById("bookingForm").addEventListener(
+    "submit",
+    handleBookingSubmit
+  );
+
+  void loadStations();
+  void loadBookings();
+}
+
+if (typeof module !== "undefined") {
+  module.exports = {
+    loadStations,
+    loadBookings,
+    handleBookingSubmit
+  };
+}
