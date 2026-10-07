@@ -1,82 +1,146 @@
-async function loadStations() {
-  const response = await fetch("/api/stations");
-  const stations = await response.json();
+const {
+  loadStations,
+  loadBookings,
+  handleBookingSubmit
+} = require("../public/app.js");
 
-  document.getElementById("stations").innerHTML = stations.map(station => `
-    <div class="station">
-      <strong>${station.name}</strong><br>
-      Location: ${station.location}<br>
-      <span class="available">${station.available}/${station.total} chargers available</span>
-    </div>
-  `).join("");
+describe("app.js", () => {
+  let elements;
 
-  const select = document.getElementById("stationId");
-  select.innerHTML = stations.map(station =>
-    `<option value="${station.id}">${station.name}</option>`
-  ).join("");
-}
+  beforeEach(() => {
+    elements = {
+      stations: {
+        innerHTML: "",
+        textContent: ""
+      },
+      stationId: {
+        innerHTML: "",
+        value: "1"
+      },
+      bookings: {
+        innerHTML: "",
+        textContent: ""
+      },
+      user: {
+        value: "John"
+      },
+      slot: {
+        value: "10:00"
+      },
+      message: {
+        textContent: ""
+      }
+    };
 
-async function loadBookings() {
-  const response = await fetch("/api/bookings");
-  const bookings = await response.json();
-  const target = document.getElementById("bookings");
+    global.document = {
+      getElementById: jest.fn(id => elements[id])
+    };
 
-  if (!bookings.length) {
-    target.textContent = "No bookings yet.";
-    return;
-  }
-
-  target.innerHTML = bookings.map(booking => `
-    <div class="station">
-      <strong>${booking.station}</strong><br>
-      User: ${booking.user}<br>
-      Slot: ${booking.slot}<br>
-      Status: ${booking.status}
-    </div>
-  `).join("");
-}
-
-async function handleBookingSubmit(event) {
-  event.preventDefault();
-
-  const payload = {
-    user: document.getElementById("user").value,
-    stationId: document.getElementById("stationId").value,
-    slot: document.getElementById("slot").value
-  };
-
-  const response = await fetch("/api/bookings", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
+    global.fetch = jest.fn();
   });
 
-  const data = await response.json();
+  afterEach(() => {
+    jest.clearAllMocks();
+    delete global.document;
+    delete global.fetch;
+  });
 
-  document.getElementById("message").textContent =
-    response.ok ? `Booking #${data.id} created successfully.` : data.error;
+  test("loads and displays charging stations", async () => {
+    fetch.mockResolvedValue({
+      json: async () => [
+        {
+          id: 1,
+          name: "Station A",
+          location: "Madurai",
+          available: 2,
+          total: 4
+        }
+      ]
+    });
 
-  if (response.ok) {
-    event.target.reset();
     await loadStations();
+
+    expect(elements.stations.innerHTML).toContain("Station A");
+    expect(elements.stations.innerHTML).toContain("Madurai");
+    expect(elements.stationId.innerHTML).toContain("Station A");
+  });
+
+  test("displays bookings when bookings exist", async () => {
+    fetch.mockResolvedValue({
+      json: async () => [
+        {
+          station: "Station A",
+          user: "John",
+          slot: "10:00",
+          status: "Confirmed"
+        }
+      ]
+    });
+
     await loadBookings();
-  }
-}
 
-if (typeof document !== "undefined") {
-  document.getElementById("bookingForm").addEventListener(
-    "submit",
-    handleBookingSubmit
-  );
+    expect(elements.bookings.innerHTML).toContain("John");
+    expect(elements.bookings.innerHTML).toContain("Confirmed");
+  });
 
-  void loadStations();
-  void loadBookings();
-}
+  test("displays message when there are no bookings", async () => {
+    fetch.mockResolvedValue({
+      json: async () => []
+    });
 
-if (typeof module !== "undefined") {
-  module.exports = {
-    loadStations,
-    loadBookings,
-    handleBookingSubmit
-  };
-}
+    await loadBookings();
+
+    expect(elements.bookings.textContent).toBe("No bookings yet.");
+  });
+
+  test("successfully submits a booking", async () => {
+    fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: 123 })
+      })
+      .mockResolvedValue({
+        json: async () => []
+      });
+
+    const event = {
+      preventDefault: jest.fn(),
+      target: {
+        reset: jest.fn()
+      }
+    };
+
+    await handleBookingSubmit(event);
+
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(event.target.reset).toHaveBeenCalled();
+
+    expect(elements.message.textContent)
+      .toBe("Booking #123 created successfully.");
+  });
+
+  test("displays error when booking fails", async () => {
+    fetch.mockResolvedValue({
+      ok: false,
+      json: async () => ({
+        error: "Booking failed"
+      })
+    });
+
+    const event = {
+      preventDefault: jest.fn(),
+      target: {
+        reset: jest.fn()
+      }
+    };
+
+    await handleBookingSubmit(event);
+
+    expect(event.preventDefault).toHaveBeenCalled();
+
+    expect(elements.message.textContent)
+      .toBe("Booking failed");
+
+    expect(event.target.reset).not.toHaveBeenCalled();
+  });
+});
