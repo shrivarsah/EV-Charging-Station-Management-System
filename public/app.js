@@ -63,16 +63,6 @@ async function handleBookingSubmit(event) {
   }
 }
 
-if (typeof document !== "undefined") {
-  document.getElementById("bookingForm").addEventListener(
-    "submit",
-    handleBookingSubmit
-  );
-
-  void loadStations();
-  void loadBookings();
-}
-
 if (typeof module !== "undefined") {
   module.exports = {
     loadStations,
