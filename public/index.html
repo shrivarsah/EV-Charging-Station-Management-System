@@ -21,9 +21,12 @@
     <section class="card">
       <h2>Reserve Charging Slot</h2>
       <form id="bookingForm">
-        <input id="user" placeholder="User name" required>
-        <select id="stationId" required></select>
-        <input id="slot" type="datetime-local" required>
+       <label for="user">User Name</label>
+<input id="user" placeholder="User name" required>
+       <label for="stationId">Charging Station</label>
+<select id="stationId" required></select>
+        <label for="slot">Charging Slot</label>
+<input id="slot" type="datetime-local" required>
         <button type="submit">Book Slot</button>
       </form>
       <p id="message"></p>
