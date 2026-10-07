@@ -62,5 +62,5 @@ document.getElementById("bookingForm").addEventListener("submit", async event =>
   }
 });
 
-loadStations();
-loadBookings();
+void loadStations();
+void loadBookings();
